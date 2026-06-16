@@ -1,0 +1,1606 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GitHub 原型上传工具</title>
+  <style>
+    :root {
+      --primary: #1677ff;
+      --primary-weak: #eaf3ff;
+      --primary-border: #b9d8ff;
+      --danger: #f56c6c;
+      --danger-weak: #fff2f0;
+      --warning: #e6a23c;
+      --warning-weak: #fff7e6;
+      --success: #67c23a;
+      --success-weak: #f0f9eb;
+      --text: #303133;
+      --regular: #606266;
+      --secondary: #909399;
+      --placeholder: #c0c4cc;
+      --border: #ebeef5;
+      --border-dark: #dcdfe6;
+      --table-head: #f5f7fa;
+      --page-bg: #f5f7fb;
+      --card-bg: #fff;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background: var(--page-bg);
+      color: var(--text);
+      font-family: Arial, "Microsoft YaHei", sans-serif;
+      font-size: 12px;
+    }
+
+    button,
+    input,
+    select {
+      font: inherit;
+    }
+
+    .page {
+      min-height: 100vh;
+      padding: 12px;
+    }
+
+    .header {
+      height: 52px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 0 16px;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+    }
+
+    .title {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .subtitle {
+      margin-top: 4px;
+      color: var(--secondary);
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      white-space: nowrap;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: minmax(320px, var(--left-pane-width, 42%)) 10px minmax(360px, 1fr);
+      gap: 8px;
+      margin-top: 12px;
+      align-items: start;
+    }
+
+    .pane {
+      min-width: 0;
+    }
+
+    .resizer {
+      width: 10px;
+      min-height: calc(100vh - 88px);
+      display: flex;
+      align-items: stretch;
+      justify-content: center;
+      cursor: col-resize;
+      user-select: none;
+      touch-action: none;
+    }
+
+    .resizer::before {
+      content: "";
+      width: 3px;
+      border-radius: 999px;
+      background: transparent;
+      transition: background 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .resizer:hover::before,
+    .resizer.active::before {
+      background: var(--primary-border);
+      box-shadow: 0 0 0 3px var(--primary-weak);
+    }
+
+    body.resizing {
+      cursor: col-resize;
+      user-select: none;
+    }
+
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .card + .card {
+      margin-top: 12px;
+    }
+
+    .card-title {
+      height: 42px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 14px;
+      border-bottom: 1px solid var(--border);
+      font-weight: 600;
+      color: var(--text);
+      background: #fff;
+    }
+
+    .card-body {
+      padding: 14px;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .form-item {
+      min-width: 0;
+    }
+
+    .form-item.full {
+      grid-column: 1 / -1;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 6px;
+      color: var(--regular);
+    }
+
+    input,
+    select {
+      width: 100%;
+      height: 32px;
+      padding: 0 10px;
+      border: 1px solid var(--border-dark);
+      border-radius: 3px;
+      color: var(--text);
+      background: #fff;
+      outline: none;
+    }
+
+    input:focus,
+    select:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 2px rgba(22, 119, 255, 0.1);
+    }
+
+    input[type="checkbox"] {
+      width: auto;
+      height: auto;
+      margin: 0;
+    }
+
+    .help {
+      margin-top: 6px;
+      color: var(--secondary);
+      line-height: 1.5;
+    }
+
+    .inline-check {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 8px;
+      color: var(--regular);
+      cursor: pointer;
+    }
+
+    .btn {
+      height: 32px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 0 12px;
+      border: 1px solid var(--border-dark);
+      border-radius: 3px;
+      color: var(--regular);
+      background: #fff;
+      cursor: pointer;
+      text-decoration: none;
+    }
+
+    .btn:hover {
+      color: var(--primary);
+      border-color: var(--primary);
+    }
+
+    .btn.primary {
+      color: #fff;
+      background: var(--primary);
+      border-color: var(--primary);
+    }
+
+    .btn.primary:hover {
+      color: #fff;
+      background: #409eff;
+      border-color: #409eff;
+    }
+
+    .btn.danger {
+      color: var(--danger);
+      border-color: #fbc4c4;
+      background: #fff;
+    }
+
+    .btn:disabled {
+      color: var(--placeholder);
+      border-color: var(--border-dark);
+      background: #f5f7fa;
+      cursor: not-allowed;
+    }
+
+    .button-row {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .drop-zone {
+      border: 1px dashed var(--primary-border);
+      border-radius: 4px;
+      background: var(--primary-weak);
+      padding: 18px;
+      text-align: center;
+      color: var(--regular);
+    }
+
+    .drop-title {
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 8px;
+    }
+
+    .quick-steps {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .quick-step {
+      padding: 10px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      background: #fafafa;
+      color: var(--regular);
+      line-height: 1.5;
+    }
+
+    .quick-step strong {
+      display: block;
+      margin-bottom: 4px;
+      color: var(--text);
+    }
+
+    .advanced {
+      margin-top: 12px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      background: #fff;
+    }
+
+    .advanced summary {
+      padding: 10px 12px;
+      color: var(--regular);
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .advanced-body {
+      padding: 0 12px 12px;
+      border-top: 1px solid var(--border);
+    }
+
+    .hidden-input {
+      display: none;
+    }
+
+    .summary {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+    }
+
+    .summary-item {
+      padding: 10px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      background: #fafafa;
+    }
+
+    .summary-label {
+      color: var(--secondary);
+      margin-bottom: 6px;
+    }
+
+    .summary-value {
+      font-size: 16px;
+      color: var(--text);
+      font-weight: 600;
+      word-break: break-all;
+    }
+
+    .alert {
+      padding: 9px 12px;
+      border-radius: 3px;
+      line-height: 1.6;
+      margin-bottom: 12px;
+    }
+
+    .alert.info {
+      color: #3a73b8;
+      background: var(--primary-weak);
+      border: 1px solid var(--primary-border);
+    }
+
+    .alert.warning {
+      color: #9a6500;
+      background: var(--warning-weak);
+      border: 1px solid #ffd591;
+    }
+
+    .alert.success {
+      color: #3f8f20;
+      background: var(--success-weak);
+      border: 1px solid #c2e7b0;
+    }
+
+    .alert.error {
+      color: #c45656;
+      background: var(--danger-weak);
+      border: 1px solid #fbc4c4;
+    }
+
+    .path-preview,
+    .link-box {
+      padding: 10px;
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      background: #fafafa;
+      color: var(--regular);
+      line-height: 1.7;
+      word-break: break-all;
+    }
+
+    .link-box a {
+      color: var(--primary);
+      text-decoration: none;
+    }
+
+    .table-wrap {
+      overflow: auto;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      max-height: 360px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 720px;
+    }
+
+    th,
+    td {
+      height: 34px;
+      padding: 0 10px;
+      border-bottom: 1px solid var(--border);
+      text-align: left;
+      white-space: nowrap;
+    }
+
+    th {
+      color: var(--regular);
+      background: var(--table-head);
+      font-weight: 600;
+    }
+
+    td {
+      color: var(--text);
+    }
+
+    tr:last-child td {
+      border-bottom: none;
+    }
+
+    .status {
+      display: inline-flex;
+      align-items: center;
+      height: 22px;
+      padding: 0 8px;
+      border-radius: 12px;
+      border: 1px solid var(--border-dark);
+      color: var(--regular);
+      background: #fff;
+    }
+
+    .status.pending {
+      color: var(--secondary);
+      background: #f4f4f5;
+    }
+
+    .status.uploading {
+      color: #3a73b8;
+      background: var(--primary-weak);
+      border-color: var(--primary-border);
+    }
+
+    .status.success {
+      color: #3f8f20;
+      background: var(--success-weak);
+      border-color: #c2e7b0;
+    }
+
+    .status.error {
+      color: #c45656;
+      background: var(--danger-weak);
+      border-color: #fbc4c4;
+    }
+
+    .log {
+      height: 160px;
+      overflow: auto;
+      padding: 10px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      background: #1f2329;
+      color: #d8dee9;
+      line-height: 1.6;
+      font-family: Consolas, Monaco, "Courier New", monospace;
+      white-space: pre-wrap;
+    }
+
+    .config-overview {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .config-chip {
+      min-height: 58px;
+      padding: 10px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      background: #fafafa;
+    }
+
+    .config-chip-label {
+      color: var(--secondary);
+      margin-bottom: 6px;
+    }
+
+    .config-chip-value {
+      color: var(--text);
+      font-weight: 600;
+      word-break: break-all;
+    }
+
+    .modal-mask {
+      position: fixed;
+      inset: 0;
+      z-index: 20;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      background: rgba(0, 0, 0, 0.38);
+    }
+
+    .modal-mask.show {
+      display: flex;
+    }
+
+    .modal {
+      width: min(720px, 100%);
+      max-height: calc(100vh - 40px);
+      overflow: hidden;
+      background: #fff;
+      border-radius: 6px;
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.18);
+    }
+
+    .modal-header,
+    .modal-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .modal-footer {
+      justify-content: flex-end;
+      border-top: 1px solid var(--border);
+      border-bottom: none;
+    }
+
+    .modal-title {
+      font-size: 15px;
+      font-weight: 600;
+    }
+
+    .modal-body {
+      max-height: calc(100vh - 170px);
+      overflow: auto;
+      padding: 16px 18px;
+    }
+
+    .icon-btn {
+      width: 28px;
+      height: 28px;
+      padding: 0;
+      border-radius: 50%;
+      font-size: 16px;
+      line-height: 1;
+    }
+
+    .toast {
+      position: fixed;
+      top: 18px;
+      left: 50%;
+      z-index: 40;
+      min-width: 180px;
+      max-width: calc(100vw - 40px);
+      padding: 10px 16px;
+      border-radius: 4px;
+      color: #3f8f20;
+      background: var(--success-weak);
+      border: 1px solid #c2e7b0;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+      text-align: center;
+      opacity: 0;
+      transform: translate(-50%, -12px);
+      pointer-events: none;
+      transition: opacity 0.18s ease, transform 0.18s ease;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translate(-50%, 0);
+    }
+
+    .toast.error {
+      color: #c45656;
+      background: var(--danger-weak);
+      border-color: #fbc4c4;
+    }
+
+    @media (max-width: 960px) {
+      .grid {
+        grid-template-columns: 1fr;
+      }
+
+      .resizer {
+        display: none;
+      }
+
+      .header {
+        height: auto;
+        align-items: flex-start;
+        flex-direction: column;
+        padding: 12px 14px;
+      }
+
+      .summary {
+        grid-template-columns: 1fr;
+      }
+
+      .config-overview {
+        grid-template-columns: 1fr;
+      }
+
+      .quick-steps {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <div class="header">
+      <div>
+        <div class="title">GitHub 原型上传工具</div>
+        <div class="subtitle">选择本地 HTML 原型文件，上传到 GitHub 仓库并生成 GitHub Pages 分享链接。</div>
+      </div>
+      <div class="header-actions">
+        <button class="btn" id="clearLogBtn" type="button">清空日志</button>
+      </div>
+    </div>
+
+    <div class="grid" id="splitGrid">
+      <div class="pane">
+        <section class="card">
+          <div class="card-title">
+            <span>1. GitHub 配置</span>
+            <button class="btn" id="editConfigBtn" type="button">编辑配置</button>
+          </div>
+          <div class="card-body">
+            <div class="config-overview">
+              <div class="config-chip">
+                <div class="config-chip-label">目标仓库</div>
+                <div class="config-chip-value" id="repoSummaryText">未配置</div>
+              </div>
+              <div class="config-chip">
+                <div class="config-chip-label">Pages 来源</div>
+                <div class="config-chip-value" id="pagesSummaryText">main /docs</div>
+              </div>
+              <div class="config-chip">
+                <div class="config-chip-label">分支</div>
+                <div class="config-chip-value" id="branchSummaryText">main</div>
+              </div>
+              <div class="config-chip">
+                <div class="config-chip-label">Token</div>
+                <div class="config-chip-value" id="tokenSummaryText">未保存</div>
+              </div>
+            </div>
+            <div class="alert warning">
+              Token 会保存到当前浏览器本地存储，仅建议在自己的电脑上使用。
+            </div>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="card-title">2. 选择文件并上传</div>
+          <div class="card-body">
+            <div class="quick-steps">
+              <div class="quick-step">
+                <strong>第一步</strong>
+                确认 GitHub 配置已保存。
+              </div>
+              <div class="quick-step">
+                <strong>第二步</strong>
+                选择一个 HTML 原型文件。
+              </div>
+              <div class="quick-step">
+                <strong>第三步</strong>
+                检查链接后点击开始上传。
+              </div>
+            </div>
+            <div class="drop-zone">
+              <div class="drop-title">新手推荐：只选择一个 HTML 文件</div>
+              <div class="help">工具会自动生成发布目录、入口文件和分享链接。只有原型依赖图片、JSON、CSS 时，才需要选择整个文件夹。</div>
+              <div class="button-row" style="justify-content: center; margin-top: 12px;">
+                <button class="btn primary" id="selectFilesBtn" type="button">选择 HTML 文件</button>
+                <button class="btn" id="selectFolderBtn" type="button">选择整个文件夹</button>
+              </div>
+            </div>
+            <input class="hidden-input" id="fileInput" type="file" accept=".html,.htm,text/html" />
+            <input class="hidden-input" id="folderInput" type="file" multiple webkitdirectory directory />
+            <label class="inline-check">
+              <input id="preserveFolderInput" type="checkbox" />
+              保留所选文件夹最外层目录名
+            </label>
+            <details class="advanced">
+              <summary>高级发布设置（一般不用填写）</summary>
+              <div class="advanced-body">
+                <div class="form-grid" style="margin-top: 12px;">
+                  <div class="form-item">
+                    <label for="entryInput">入口文件</label>
+                    <input id="entryInput" value="prototype.html" autocomplete="off" />
+                    <div class="help">选择单个 HTML 或整个文件夹后会自动检测；多个 HTML 时可在这里手动改。</div>
+                  </div>
+                  <div class="form-item full">
+                    <label for="targetDirInput">发布目录</label>
+                    <input id="targetDirInput" value="inventory-alert-transfer-control" autocomplete="off" />
+                    <div class="help">选择单个 HTML 文件后会自动生成，例如 <code>prototype-20260608-173000</code>。</div>
+                  </div>
+                  <div class="form-item full">
+                    <label for="commitMessageInput">提交信息</label>
+                    <input id="commitMessageInput" value="Upload prototype" autocomplete="off" />
+                  </div>
+                </div>
+              </div>
+            </details>
+          </div>
+        </section>
+      </div>
+
+      <div class="resizer" id="splitResizer" role="separator" aria-label="拖动调整左右区域宽度" aria-orientation="vertical" tabindex="0"></div>
+
+      <div class="pane">
+        <section class="card">
+          <div class="card-title">
+            <span>上传预览</span>
+            <button class="btn primary" id="uploadBtn" type="button">开始上传</button>
+          </div>
+          <div class="card-body">
+            <div class="summary">
+              <div class="summary-item">
+                <div class="summary-label">待上传文件</div>
+                <div class="summary-value" id="fileCountText">0</div>
+              </div>
+              <div class="summary-item">
+                <div class="summary-label">总大小</div>
+                <div class="summary-value" id="totalSizeText">0 KB</div>
+              </div>
+              <div class="summary-item">
+                <div class="summary-label">Pages 来源</div>
+                <div class="summary-value" id="sourceText">/docs</div>
+              </div>
+            </div>
+
+            <div class="alert info" style="margin-top: 12px;">
+              上传成功后 GitHub Pages 可能需要几十秒刷新。如果链接暂时 404，请稍后再打开。
+            </div>
+
+            <label>仓库上传路径</label>
+            <div class="path-preview" id="repoPathPreview">请选择文件并填写 GitHub 配置。</div>
+
+            <label style="margin-top: 12px;">分享链接</label>
+            <div class="link-box" id="shareLinkPreview">生成后会显示 GitHub Pages 链接。</div>
+
+            <div class="button-row" style="margin-top: 12px;">
+              <button class="btn" id="copyLinkBtn" type="button" disabled>复制分享链接</button>
+              <a class="btn" id="openLinkBtn" href="#" target="_blank" rel="noreferrer" aria-disabled="true">打开链接</a>
+              <a class="btn" id="openRepoBtn" href="#" target="_blank" rel="noreferrer" aria-disabled="true">查看仓库目录</a>
+            </div>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="card-title">文件列表</div>
+          <div class="card-body">
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="width: 34%;">本地文件</th>
+                    <th style="width: 42%;">GitHub 路径</th>
+                    <th style="width: 10%;">大小</th>
+                    <th style="width: 14%;">状态</th>
+                  </tr>
+                </thead>
+                <tbody id="fileTableBody">
+                  <tr>
+                    <td colspan="4" style="text-align: center; color: var(--secondary);">暂无文件</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="card-title">执行日志</div>
+          <div class="card-body">
+            <div class="log" id="logBox">等待上传...</div>
+          </div>
+        </section>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toastBox" role="status" aria-live="polite"></div>
+
+  <div class="modal-mask" id="configModal" role="dialog" aria-modal="true" aria-labelledby="configModalTitle">
+    <div class="modal">
+      <div class="modal-header">
+        <div>
+          <div class="modal-title" id="configModalTitle">GitHub 发布配置</div>
+          <div class="help" style="margin-top: 4px;">配置目标仓库、Pages 来源和上传 Token。</div>
+        </div>
+        <button class="btn icon-btn" id="closeConfigBtn" type="button" aria-label="关闭配置弹窗">×</button>
+      </div>
+      <div class="modal-body">
+        <div class="alert warning">
+          Token 会保存到当前浏览器 localStorage，适合个人电脑使用。公共电脑不建议保存 Token。
+        </div>
+        <div class="form-grid">
+          <div class="form-item">
+            <label for="ownerInput">Owner / 组织</label>
+            <input id="ownerInput" placeholder="例如 YOU-NO" autocomplete="off" />
+          </div>
+          <div class="form-item">
+            <label for="repoInput">仓库名</label>
+            <input id="repoInput" placeholder="例如 My_Prototype_Demo" autocomplete="off" />
+          </div>
+          <div class="form-item">
+            <label for="branchInput">分支</label>
+            <input id="branchInput" value="main" autocomplete="off" />
+          </div>
+          <div class="form-item">
+            <label for="pagesSourceSelect">GitHub Pages 来源</label>
+            <select id="pagesSourceSelect">
+              <option value="docs">main 分支 /docs 目录</option>
+              <option value="root">main 分支根目录</option>
+              <option value="gh-pages">gh-pages 分支根目录</option>
+            </select>
+          </div>
+          <div class="form-item full">
+            <label for="tokenInput">GitHub Token</label>
+            <input id="tokenInput" type="password" placeholder="Fine-grained PAT，需 Contents: Read and write" autocomplete="off" />
+            <label class="inline-check">
+              <input id="showTokenInput" type="checkbox" />
+              显示 Token
+            </label>
+          </div>
+          <div class="form-item full">
+            <label for="pagesBaseInput">Pages Base URL（可选）</label>
+            <input id="pagesBaseInput" placeholder="留空则按 https://owner.github.io/repo/ 自动生成" autocomplete="off" />
+            <div class="help">如果你使用自定义域名，或仓库名是 <code>owner.github.io</code>，可以在这里覆盖默认链接。</div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn" id="cancelConfigBtn" type="button">取消</button>
+        <button class="btn primary" id="saveConfigBtn" type="button">保存配置</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const state = {
+      files: [],
+      shareLink: "",
+      repoDirUrl: ""
+    };
+
+    const els = {
+      owner: document.getElementById("ownerInput"),
+      repo: document.getElementById("repoInput"),
+      branch: document.getElementById("branchInput"),
+      pagesSource: document.getElementById("pagesSourceSelect"),
+      token: document.getElementById("tokenInput"),
+      showToken: document.getElementById("showTokenInput"),
+      pagesBase: document.getElementById("pagesBaseInput"),
+      configModal: document.getElementById("configModal"),
+      splitGrid: document.getElementById("splitGrid"),
+      splitResizer: document.getElementById("splitResizer"),
+      clearLog: document.getElementById("clearLogBtn"),
+      editConfig: document.getElementById("editConfigBtn"),
+      closeConfig: document.getElementById("closeConfigBtn"),
+      cancelConfig: document.getElementById("cancelConfigBtn"),
+      entry: document.getElementById("entryInput"),
+      targetDir: document.getElementById("targetDirInput"),
+      commitMessage: document.getElementById("commitMessageInput"),
+      preserveFolder: document.getElementById("preserveFolderInput"),
+      fileInput: document.getElementById("fileInput"),
+      folderInput: document.getElementById("folderInput"),
+      selectFiles: document.getElementById("selectFilesBtn"),
+      selectFolder: document.getElementById("selectFolderBtn"),
+      upload: document.getElementById("uploadBtn"),
+      saveConfig: document.getElementById("saveConfigBtn"),
+      repoSummary: document.getElementById("repoSummaryText"),
+      pagesSummary: document.getElementById("pagesSummaryText"),
+      branchSummary: document.getElementById("branchSummaryText"),
+      tokenSummary: document.getElementById("tokenSummaryText"),
+      fileCount: document.getElementById("fileCountText"),
+      totalSize: document.getElementById("totalSizeText"),
+      source: document.getElementById("sourceText"),
+      repoPathPreview: document.getElementById("repoPathPreview"),
+      shareLinkPreview: document.getElementById("shareLinkPreview"),
+      copyLink: document.getElementById("copyLinkBtn"),
+      openLink: document.getElementById("openLinkBtn"),
+      openRepo: document.getElementById("openRepoBtn"),
+      fileTableBody: document.getElementById("fileTableBody"),
+      log: document.getElementById("logBox"),
+      toast: document.getElementById("toastBox")
+    };
+
+    const STORAGE_KEY = "eva.githubPrototypeUploader.config";
+    const LOG_STORAGE_KEY = "eva.githubPrototypeUploader.logs";
+    const SPLIT_WIDTH_STORAGE_KEY = "eva.githubPrototypeUploader.leftPaneWidth";
+    let toastTimer = null;
+
+    window.addEventListener("error", (event) => {
+      const message = event.error?.message || event.message || "未知脚本错误";
+      if (els.log) {
+        setLog(`页面脚本错误：${message}`);
+      }
+    });
+
+    window.addEventListener("unhandledrejection", (event) => {
+      const message = event.reason?.message || String(event.reason || "未知异步错误");
+      if (els.log) {
+        setLog(`页面异步错误：${message}`);
+      }
+    });
+
+    function normalizePath(value) {
+      return String(value || "")
+        .replace(/\\/g, "/")
+        .replace(/^\/+|\/+$/g, "")
+        .replace(/\/{2,}/g, "/");
+    }
+
+    function pageSourceLabel(value = els.pagesSource.value) {
+      const labels = {
+        docs: "main /docs",
+        root: "main /root",
+        "gh-pages": "gh-pages /root"
+      };
+      return labels[value] || value;
+    }
+
+    function updateConfigSummary() {
+      const owner = els.owner.value.trim();
+      const repo = els.repo.value.trim();
+      els.repoSummary.textContent = owner && repo ? `${owner}/${repo}` : "未配置";
+      els.pagesSummary.textContent = pageSourceLabel();
+      els.branchSummary.textContent = els.branch.value.trim() || "未配置";
+      els.tokenSummary.textContent = els.token.value.trim() ? "已保存" : "未保存";
+    }
+
+    function openConfigModal() {
+      els.configModal.classList.add("show");
+      setTimeout(() => els.owner.focus(), 0);
+    }
+
+    function closeConfigModal() {
+      els.configModal.classList.remove("show");
+    }
+
+    function showToast(message, type = "success") {
+      window.clearTimeout(toastTimer);
+      els.toast.textContent = message;
+      els.toast.classList.toggle("error", type === "error");
+      els.toast.classList.add("show");
+      toastTimer = window.setTimeout(() => {
+        els.toast.classList.remove("show");
+      }, 2000);
+    }
+
+    function setLeftPaneWidth(width) {
+      const gridRect = els.splitGrid.getBoundingClientRect();
+      if (!gridRect.width) return;
+      const minLeft = 320;
+      const minRight = 360;
+      const resizerWidth = 10;
+      const maxLeft = Math.max(minLeft, gridRect.width - minRight - resizerWidth - 16);
+      const nextWidth = Math.min(Math.max(width, minLeft), maxLeft);
+      els.splitGrid.style.setProperty("--left-pane-width", `${nextWidth}px`);
+      localStorage.setItem(SPLIT_WIDTH_STORAGE_KEY, String(Math.round(nextWidth)));
+    }
+
+    function loadSplitWidth() {
+      const savedWidth = Number(localStorage.getItem(SPLIT_WIDTH_STORAGE_KEY));
+      if (Number.isFinite(savedWidth) && savedWidth > 0) {
+        setLeftPaneWidth(savedWidth);
+      }
+    }
+
+    function startResize(event) {
+      if (window.matchMedia("(max-width: 960px)").matches) return;
+      event.preventDefault();
+      els.splitResizer.classList.add("active");
+      document.body.classList.add("resizing");
+
+      const onPointerMove = (moveEvent) => {
+        const gridRect = els.splitGrid.getBoundingClientRect();
+        setLeftPaneWidth(moveEvent.clientX - gridRect.left);
+      };
+
+      const stopResize = () => {
+        els.splitResizer.classList.remove("active");
+        document.body.classList.remove("resizing");
+        window.removeEventListener("pointermove", onPointerMove);
+        window.removeEventListener("pointerup", stopResize);
+      };
+
+      window.addEventListener("pointermove", onPointerMove);
+      window.addEventListener("pointerup", stopResize);
+    }
+
+    function adjustSplitByKeyboard(event) {
+      if (!["ArrowLeft", "ArrowRight"].includes(event.key)) return;
+      event.preventDefault();
+      const currentWidth = Number.parseFloat(getComputedStyle(els.splitGrid).getPropertyValue("--left-pane-width"))
+        || els.splitGrid.firstElementChild.getBoundingClientRect().width;
+      setLeftPaneWidth(currentWidth + (event.key === "ArrowRight" ? 24 : -24));
+    }
+
+    function encodePath(path) {
+      return normalizePath(path)
+        .split("/")
+        .map(encodeURIComponent)
+        .join("/");
+    }
+
+    function formatBytes(bytes) {
+      if (!bytes) return "0 KB";
+      if (bytes < 1024) return `${bytes} B`;
+      if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+      return `${(bytes / 1024 / 1024).toFixed(2)} MB`;
+    }
+
+    function sourcePrefix() {
+      return els.pagesSource.value === "docs" ? "docs" : "";
+    }
+
+    function publicPathFromRepoPath(repoPath) {
+      const normalized = normalizePath(repoPath);
+      if (els.pagesSource.value === "docs" && normalized.startsWith("docs/")) {
+        return normalized.slice(5);
+      }
+      return normalized;
+    }
+
+    function getTargetDir() {
+      return normalizePath(els.targetDir.value || "prototype");
+    }
+
+    function timestampSlug(date = new Date()) {
+      const pad = (value) => String(value).padStart(2, "0");
+      return [
+        date.getFullYear(),
+        pad(date.getMonth() + 1),
+        pad(date.getDate())
+      ].join("") + "-" + [
+        pad(date.getHours()),
+        pad(date.getMinutes()),
+        pad(date.getSeconds())
+      ].join("");
+    }
+
+    function slugify(value) {
+      const slug = String(value || "")
+        .trim()
+        .toLowerCase()
+        .replace(/\.[^.]+$/g, "")
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-+|-+$/g, "");
+      return slug || "";
+    }
+
+    async function readHtmlTitle(file) {
+      if (!/\.html?$/i.test(file.name)) return "";
+      try {
+        const text = await file.text();
+        const match = text.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
+        return match ? match[1].replace(/\s+/g, " ").trim() : "";
+      } catch (error) {
+        return "";
+      }
+    }
+
+    async function inferSingleFilePublishSettings(file) {
+      const entryFileName = normalizePath(file.name);
+      els.entry.value = entryFileName;
+
+      if (!els.targetDir.dataset.touched) {
+        const title = await readHtmlTitle(file);
+        const baseSlug = slugify(title) || slugify(file.name);
+        const needsTimestamp = !baseSlug || baseSlug === "prototype" || baseSlug === "index";
+        els.targetDir.value = needsTimestamp ? `prototype-${timestampSlug()}` : baseSlug;
+      }
+
+      if (!els.commitMessage.value.trim()) {
+        els.commitMessage.value = "Upload prototype";
+      }
+    }
+
+    function getRepoPath(relativePath) {
+      return normalizePath([sourcePrefix(), getTargetDir(), relativePath].filter(Boolean).join("/"));
+    }
+
+    function getCommonFirstSegment(files) {
+      const segments = files
+        .map((item) => item.rawPath.split("/").filter(Boolean))
+        .filter((parts) => parts.length > 1);
+      if (!segments.length || segments.length !== files.length) return "";
+      const first = segments[0][0];
+      return segments.every((parts) => parts[0] === first) ? first : "";
+    }
+
+    function getRelativePath(fileOrPath, commonFirstSegment) {
+      const rawPath = normalizePath(typeof fileOrPath === "string"
+        ? fileOrPath
+        : fileOrPath.webkitRelativePath || fileOrPath.name);
+      if (!els.preserveFolder.checked && commonFirstSegment && rawPath.startsWith(`${commonFirstSegment}/`)) {
+        return rawPath.slice(commonFirstSegment.length + 1);
+      }
+      return rawPath;
+    }
+
+    function selectedFilesFromFileList(fileList) {
+      const rawFiles = Array.from(fileList || []).map((file) => ({
+        file,
+        rawPath: normalizePath(file.webkitRelativePath || file.name)
+      }));
+      const commonFirstSegment = getCommonFirstSegment(rawFiles);
+      return rawFiles.map((item) => {
+        const relativePath = getRelativePath(item.file, commonFirstSegment);
+        return {
+          file: item.file,
+          localPath: item.rawPath,
+          relativePath,
+          repoPath: getRepoPath(relativePath),
+          status: "pending",
+          message: ""
+        };
+      });
+    }
+
+    function refreshRelativePaths() {
+      const rawFiles = state.files.map((item) => ({
+        file: item.file,
+        rawPath: item.localPath
+      }));
+      const commonFirstSegment = getCommonFirstSegment(rawFiles);
+      state.files = state.files.map((item) => {
+        const relativePath = getRelativePath(item.localPath, commonFirstSegment);
+        return {
+          ...item,
+          relativePath,
+          repoPath: getRepoPath(relativePath)
+        };
+      });
+    }
+
+    function inferTargetDirFromFiles(files) {
+      const firstFolderPath = files.find((item) => item.localPath.includes("/"))?.localPath;
+      if (!firstFolderPath) return;
+      const folderName = firstFolderPath.split("/")[0];
+      if (folderName && !els.targetDir.dataset.touched) {
+        els.targetDir.value = folderName;
+      }
+    }
+
+    function isHtmlFile(path) {
+      return /\.html?$/i.test(normalizePath(path));
+    }
+
+    function entryPriority(path) {
+      const normalized = normalizePath(path).toLowerCase();
+      const fileName = normalized.split("/").pop();
+      const depth = normalized.split("/").length;
+      if (fileName === "prototype.html") return 0 + depth / 100;
+      if (fileName === "index.html") return 1 + depth / 100;
+      if (fileName === "preview.html") return 2 + depth / 100;
+      if (fileName === "demo.html") return 3 + depth / 100;
+      return 10 + depth / 100;
+    }
+
+    function detectEntryFile(files) {
+      const htmlFiles = files
+        .map((item) => normalizePath(item.relativePath))
+        .filter(isHtmlFile)
+        .sort((a, b) => entryPriority(a) - entryPriority(b) || a.localeCompare(b));
+      return {
+        entry: htmlFiles[0] || "",
+        htmlFiles
+      };
+    }
+
+    function inferEntryFromFiles(files) {
+      const { entry, htmlFiles } = detectEntryFile(files);
+      if (!entry) return "未检测到 HTML 入口文件，请在高级发布设置中填写入口文件。";
+      els.entry.value = entry;
+      if (htmlFiles.length > 1) {
+        return `检测到 ${htmlFiles.length} 个 HTML 文件，已自动选择入口：${entry}。如需更换，请在高级发布设置中修改。`;
+      }
+      return `已自动选择入口文件：${entry}。`;
+    }
+
+    function log(message) {
+      const time = new Date().toLocaleString("zh-CN", { hour12: false });
+      const line = `[${time}] ${message}`;
+      els.log.textContent = els.log.textContent === "等待上传..." ? line : `${els.log.textContent}\n${line}`;
+      localStorage.setItem(LOG_STORAGE_KEY, els.log.textContent);
+      els.log.scrollTop = els.log.scrollHeight;
+    }
+
+    function setLog(message) {
+      log(message);
+    }
+
+    function loadLogHistory() {
+      const history = localStorage.getItem(LOG_STORAGE_KEY);
+      if (history) {
+        els.log.textContent = history;
+        els.log.scrollTop = els.log.scrollHeight;
+      }
+    }
+
+    function clearLogs() {
+      localStorage.removeItem(LOG_STORAGE_KEY);
+      els.log.textContent = "等待上传...";
+    }
+
+    function updateStatus(index, status, message = "") {
+      if (!state.files[index]) return;
+      state.files[index].status = status;
+      state.files[index].message = message;
+      renderFiles();
+    }
+
+    function statusLabel(status) {
+      const labels = {
+        pending: "待上传",
+        uploading: "上传中",
+        success: "成功",
+        error: "失败"
+      };
+      return labels[status] || status;
+    }
+
+    function renderFiles() {
+      const targetDir = getTargetDir();
+      refreshRelativePaths();
+      updateConfigSummary();
+
+      els.fileCount.textContent = state.files.length;
+      els.totalSize.textContent = formatBytes(state.files.reduce((sum, item) => sum + item.file.size, 0));
+      els.source.textContent = els.pagesSource.value === "docs" ? "/docs" : "/";
+
+      if (!state.files.length) {
+        els.fileTableBody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: var(--secondary);">暂无文件</td></tr>';
+      } else {
+        els.fileTableBody.innerHTML = state.files.map((item) => `
+          <tr>
+            <td title="${escapeHtml(item.localPath)}">${escapeHtml(item.localPath)}</td>
+            <td title="${escapeHtml(item.repoPath)}">${escapeHtml(item.repoPath)}</td>
+            <td>${formatBytes(item.file.size)}</td>
+            <td><span class="status ${item.status}" title="${escapeHtml(item.message)}">${statusLabel(item.status)}</span></td>
+          </tr>
+        `).join("");
+      }
+
+      const entryPath = getRepoPath(normalizePath(els.entry.value || "prototype.html"));
+      els.repoPathPreview.textContent = state.files.length
+        ? state.files.map((item) => item.repoPath).join("\n")
+        : `${sourcePrefix() ? `${sourcePrefix()}/` : ""}${targetDir}/...`;
+
+      state.shareLink = buildShareLink(entryPath);
+      state.repoDirUrl = buildRepoDirUrl();
+      renderLinks();
+    }
+
+    function renderLinks() {
+      if (state.shareLink) {
+        els.shareLinkPreview.innerHTML = `<a href="${state.shareLink}" target="_blank" rel="noreferrer">${state.shareLink}</a>`;
+        els.copyLink.disabled = false;
+        els.openLink.href = state.shareLink;
+        els.openLink.setAttribute("aria-disabled", "false");
+      } else {
+        els.shareLinkPreview.textContent = "生成后会显示 GitHub Pages 链接。";
+        els.copyLink.disabled = true;
+        els.openLink.href = "#";
+        els.openLink.setAttribute("aria-disabled", "true");
+      }
+
+      if (state.repoDirUrl) {
+        els.openRepo.href = state.repoDirUrl;
+        els.openRepo.setAttribute("aria-disabled", "false");
+      } else {
+        els.openRepo.href = "#";
+        els.openRepo.setAttribute("aria-disabled", "true");
+      }
+    }
+
+    function buildShareLink(entryRepoPath) {
+      const owner = els.owner.value.trim();
+      const repo = els.repo.value.trim();
+      if (!owner || !repo) return "";
+      const publicPath = publicPathFromRepoPath(entryRepoPath);
+      const customBase = els.pagesBase.value.trim();
+      const base = customBase
+        ? customBase.replace(/\/+$/g, "")
+        : `https://${owner}.github.io${repo === `${owner}.github.io` ? "" : `/${repo}`}`;
+      return `${base}/${encodePath(publicPath)}`;
+    }
+
+    function buildRepoDirUrl() {
+      const owner = els.owner.value.trim();
+      const repo = els.repo.value.trim();
+      const branch = els.branch.value.trim();
+      if (!owner || !repo || !branch) return "";
+      const dir = normalizePath([sourcePrefix(), getTargetDir()].filter(Boolean).join("/"));
+      return `https://github.com/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/tree/${encodeURIComponent(branch)}/${encodePath(dir)}`;
+    }
+
+    function escapeHtml(value) {
+      return String(value || "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+
+    async function fileToBase64(file) {
+      const buffer = await file.arrayBuffer();
+      const bytes = new Uint8Array(buffer);
+      const chunkSize = 0x8000;
+      let binary = "";
+      for (let i = 0; i < bytes.length; i += chunkSize) {
+        binary += String.fromCharCode.apply(null, bytes.subarray(i, i + chunkSize));
+      }
+      return btoa(binary);
+    }
+
+    async function githubRequest(url, options = {}) {
+      const token = els.token.value.trim();
+      const response = await fetch(url, {
+        ...options,
+        headers: {
+          Accept: "application/vnd.github+json",
+          Authorization: `Bearer ${token}`,
+          "X-GitHub-Api-Version": "2022-11-28",
+          ...(options.headers || {})
+        }
+      });
+
+      const text = await response.text();
+      let data = null;
+      if (text) {
+        try {
+          data = JSON.parse(text);
+        } catch (error) {
+          data = { message: text };
+        }
+      }
+
+      if (!response.ok) {
+        const message = data?.message || `GitHub API 请求失败：${response.status}`;
+        const err = new Error(message);
+        err.status = response.status;
+        err.data = data;
+        throw err;
+      }
+
+      return data;
+    }
+
+    async function getExistingSha(owner, repo, branch, path) {
+      const url = `https://api.github.com/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/contents/${encodePath(path)}?ref=${encodeURIComponent(branch)}`;
+      try {
+        const data = await githubRequest(url);
+        return Array.isArray(data) ? null : data.sha;
+      } catch (error) {
+        if (error.status === 404) return null;
+        throw error;
+      }
+    }
+
+    async function uploadFile(item) {
+      const owner = els.owner.value.trim();
+      const repo = els.repo.value.trim();
+      const branch = els.branch.value.trim();
+      const message = els.commitMessage.value.trim() || "Upload prototype";
+      const sha = await getExistingSha(owner, repo, branch, item.repoPath);
+      const content = await fileToBase64(item.file);
+      const url = `https://api.github.com/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/contents/${encodePath(item.repoPath)}`;
+      const body = {
+        message: `${message}: ${item.relativePath}`,
+        content,
+        branch
+      };
+      if (sha) body.sha = sha;
+      await githubRequest(url, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body)
+      });
+      return sha ? "updated" : "created";
+    }
+
+    function validateBeforeUpload() {
+      const required = [
+        [els.owner, "请填写 GitHub Owner / 组织。"],
+        [els.repo, "请填写仓库名。"],
+        [els.branch, "请填写分支。"],
+        [els.token, "请填写 GitHub Token。"],
+        [els.targetDir, "请填写发布目录。"],
+        [els.entry, "请填写入口文件。"]
+      ];
+      for (const [input, message] of required) {
+        if (!input.value.trim()) {
+          input.focus();
+          throw new Error(message);
+        }
+      }
+      if (!state.files.length) {
+        throw new Error("请先选择要上传的原型文件。");
+      }
+      const entry = normalizePath(els.entry.value);
+      const hasEntry = state.files.some((item) => normalizePath(item.relativePath) === entry);
+      if (!hasEntry) {
+        throw new Error(`待上传文件中未找到入口文件：${entry}`);
+      }
+    }
+
+    async function handleUpload() {
+      setLog("已点击开始上传，正在校验配置和文件...");
+
+      try {
+        validateBeforeUpload();
+      } catch (error) {
+        setLog(`校验失败：${error.message}`);
+        return;
+      }
+
+      els.upload.disabled = true;
+      setLog("开始上传...");
+
+      let successCount = 0;
+      for (let i = 0; i < state.files.length; i += 1) {
+        const item = state.files[i];
+        updateStatus(i, "uploading");
+        log(`上传 ${item.repoPath}`);
+        try {
+          const action = await uploadFile(item);
+          updateStatus(i, "success", action);
+          successCount += 1;
+          log(`完成 ${item.repoPath} (${action})`);
+        } catch (error) {
+          updateStatus(i, "error", error.message);
+          log(`失败 ${item.repoPath}: ${error.message}`);
+        }
+      }
+
+      els.upload.disabled = false;
+      renderFiles();
+      if (successCount === state.files.length) {
+        log(`全部上传完成。分享链接：${state.shareLink}`);
+      } else {
+        log(`上传完成：成功 ${successCount} 个，失败 ${state.files.length - successCount} 个。`);
+      }
+    }
+
+    function saveConfig() {
+      const config = {
+        owner: els.owner.value.trim(),
+        repo: els.repo.value.trim(),
+        branch: els.branch.value.trim(),
+        pagesSource: els.pagesSource.value,
+        token: els.token.value.trim(),
+        pagesBase: els.pagesBase.value.trim(),
+        entry: els.entry.value.trim(),
+        targetDir: els.targetDir.value.trim(),
+        commitMessage: els.commitMessage.value.trim(),
+        preserveFolder: els.preserveFolder.checked
+      };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(config));
+      renderFiles();
+      closeConfigModal();
+      showToast("保存成功");
+      setLog("已保存配置，Token 已保存到当前浏览器本地存储。");
+    }
+
+    function loadConfig() {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return;
+      try {
+        const config = JSON.parse(raw);
+        els.owner.value = config.owner || "";
+        els.repo.value = config.repo || "";
+        els.branch.value = config.branch || "main";
+        els.pagesSource.value = config.pagesSource || "docs";
+        els.token.value = config.token || "";
+        els.pagesBase.value = config.pagesBase || "";
+        els.entry.value = config.entry || "prototype.html";
+        els.targetDir.value = config.targetDir || "inventory-alert-transfer-control";
+        delete els.targetDir.dataset.touched;
+        els.commitMessage.value = config.commitMessage || "Upload prototype";
+        els.preserveFolder.checked = Boolean(config.preserveFolder);
+      } catch (error) {
+        localStorage.removeItem(STORAGE_KEY);
+      }
+    }
+
+    async function handleFileSelection(fileList) {
+      state.files = selectedFilesFromFileList(fileList);
+      let entryMessage = "";
+      if (state.files.length === 1 && /\.html?$/i.test(state.files[0].file.name)) {
+        await inferSingleFilePublishSettings(state.files[0].file);
+        entryMessage = `已自动选择入口文件：${els.entry.value.trim()}。`;
+      } else {
+        inferTargetDirFromFiles(state.files);
+        refreshRelativePaths();
+        entryMessage = inferEntryFromFiles(state.files);
+      }
+      renderFiles();
+      setLog(state.files.length
+        ? `已选择 ${state.files.length} 个文件，发布目录：${getTargetDir()}，入口文件：${els.entry.value.trim()}。${entryMessage}`
+        : "未选择文件。");
+    }
+
+    [
+      els.owner,
+      els.repo,
+      els.branch,
+      els.pagesSource,
+      els.token,
+      els.pagesBase,
+      els.entry
+    ].forEach((input) => input.addEventListener("input", renderFiles));
+
+    els.pagesSource.addEventListener("change", renderFiles);
+    els.preserveFolder.addEventListener("change", () => {
+      refreshRelativePaths();
+      inferEntryFromFiles(state.files);
+      renderFiles();
+      setLog(`已更新文件夹路径规则，当前入口文件：${els.entry.value.trim() || "未检测到"}。`);
+    });
+    els.targetDir.addEventListener("input", () => {
+      els.targetDir.dataset.touched = "true";
+      renderFiles();
+    });
+    els.showToken.addEventListener("change", () => {
+      els.token.type = els.showToken.checked ? "text" : "password";
+      updateConfigSummary();
+    });
+    els.clearLog.addEventListener("click", clearLogs);
+    els.editConfig.addEventListener("click", openConfigModal);
+    els.closeConfig.addEventListener("click", closeConfigModal);
+    els.cancelConfig.addEventListener("click", closeConfigModal);
+    els.splitResizer.addEventListener("pointerdown", startResize);
+    els.splitResizer.addEventListener("keydown", adjustSplitByKeyboard);
+    window.addEventListener("resize", () => {
+      const currentWidth = els.splitGrid.firstElementChild.getBoundingClientRect().width;
+      setLeftPaneWidth(currentWidth);
+    });
+    els.configModal.addEventListener("click", (event) => {
+      if (event.target === els.configModal) {
+        closeConfigModal();
+      }
+    });
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") {
+        closeConfigModal();
+      }
+    });
+    els.selectFiles.addEventListener("click", () => els.fileInput.click());
+    els.selectFolder.addEventListener("click", () => els.folderInput.click());
+    els.fileInput.addEventListener("change", (event) => handleFileSelection(event.target.files));
+    els.folderInput.addEventListener("change", (event) => handleFileSelection(event.target.files));
+    els.upload.addEventListener("click", handleUpload);
+    els.saveConfig.addEventListener("click", saveConfig);
+    els.copyLink.addEventListener("click", async () => {
+      if (!state.shareLink) return;
+      try {
+        await navigator.clipboard.writeText(state.shareLink);
+        showToast("复制成功");
+        setLog(`已复制分享链接：${state.shareLink}`);
+      } catch (error) {
+        showToast("复制失败，请手动复制链接", "error");
+        setLog(`复制分享链接失败：${error.message}`);
+      }
+    });
+    els.openLink.addEventListener("click", (event) => {
+      if (!state.shareLink) event.preventDefault();
+    });
+    els.openRepo.addEventListener("click", (event) => {
+      if (!state.repoDirUrl) event.preventDefault();
+    });
+
+    try {
+      loadLogHistory();
+      loadConfig();
+      loadSplitWidth();
+      renderFiles();
+      log("页面已就绪，可以选择文件并上传。");
+    } catch (error) {
+      setLog(`页面初始化失败：${error.message}`);
+    }
+  </script>
+</body>
+</html>
